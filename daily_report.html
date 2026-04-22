@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>日報</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Hiragino Sans", "Meiryo", sans-serif;
+      background: #f0f2f5;
+      min-height: 100vh;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 40px 16px;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+      padding: 36px 40px;
+      width: 100%;
+      max-width: 640px;
+    }
+
+    h1 {
+      font-size: 22px;
+      color: #1a1a2e;
+      margin-bottom: 28px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    h1 span { font-size: 26px; }
+
+    .field { margin-bottom: 20px; }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      color: #555;
+      margin-bottom: 6px;
+    }
+
+    label .required {
+      color: #e74c3c;
+      margin-left: 4px;
+    }
+
+    label .badge {
+      background: #e8f4fd;
+      color: #2980b9;
+      font-size: 11px;
+      padding: 2px 7px;
+      border-radius: 10px;
+      margin-left: 6px;
+      font-weight: normal;
+    }
+
+    input[type="text"],
+    input[type="date"],
+    select,
+    textarea {
+      width: 100%;
+      padding: 10px 14px;
+      border: 1.5px solid #dde1e7;
+      border-radius: 8px;
+      font-size: 14px;
+      font-family: inherit;
+      color: #333;
+      transition: border-color 0.2s;
+      background: #fff;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: #4a90e2;
+    }
+
+    textarea { resize: vertical; min-height: 80px; }
+
+    .plan-box {
+      background: #f8fafd;
+      border: 1.5px solid #c5d8f0;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 14px;
+      color: #444;
+      min-height: 60px;
+      white-space: pre-wrap;
+    }
+
+    .plan-box.empty { color: #aaa; font-style: italic; }
+
+    .divider {
+      border: none;
+      border-top: 1px solid #eee;
+      margin: 28px 0;
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 14px;
+      background: #4a90e2;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .submit-btn:hover { background: #357abd; }
+    .submit-btn:active { transform: scale(0.99); }
+    .submit-btn:disabled { background: #a0b8d8; cursor: not-allowed; }
+
+    .toast {
+      display: none;
+      margin-top: 16px;
+      padding: 12px 16px;
+      border-radius: 8px;
+      font-size: 14px;
+      text-align: center;
+    }
+
+    .toast.success { background: #eafaf1; color: #27ae60; border: 1px solid #a9dfbf; }
+    .toast.error   { background: #fdf0f0; color: #e74c3c; border: 1px solid #f5c6c6; }
+
+    .loading { display: none; font-size: 13px; color: #888; margin-top: 6px; }
+  </style>
+</head>
+<body>
+<div class="card">
+  <h1><span>📝</span> 日報入力</h1>
+
+  <div class="field">
+    <label>日付 <span class="required">*</span></label>
+    <input type="date" id="date" required>
+  </div>
+
+  <div class="field">
+    <label>担当者 <span class="required">*</span></label>
+    <select id="name" onchange="fetchLastPlan()">
+      <option value="">-- 選択してください --</option>
+      <option value="熊田">熊田</option>
+      <option value="萱場">萱場</option>
+    </select>
+  </div>
+
+  <div class="field">
+    <label>本日の予定（計画）<span class="badge">前回の「明日の予定」から自動引用</span></label>
+    <div class="plan-box empty" id="todayPlanDisplay">名前を選択すると前回の予定が表示されます</div>
+    <div class="loading" id="planLoading">取得中...</div>
+    <input type="hidden" id="todayPlan">
+  </div>
+
+  <hr class="divider">
+
+  <div class="field">
+    <label>本日の実績 <span class="required">*</span></label>
+    <textarea id="todayActual" placeholder="実際に取り組んだこと・完了したことを記載"></textarea>
+  </div>
+
+  <div class="field">
+    <label>振り返り（計画との比較）</label>
+    <textarea id="reflection" placeholder="計画通りだった点・できなかった点・その理由など"></textarea>
+  </div>
+
+  <div class="field">
+    <label>明日の予定 <span class="required">*</span></label>
+    <textarea id="tomorrowPlan" placeholder="明日取り組む予定のタスクを記載（次回の日報に自動引用されます）"></textarea>
+  </div>
+
+  <div class="field">
+    <label>所感・メモ</label>
+    <textarea id="memo" placeholder="気づき・連絡事項など（任意）" style="min-height:60px"></textarea>
+  </div>
+
+  <button class="submit-btn" id="submitBtn" onclick="submitReport()">送信する</button>
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+  // ============================================================
+  // ★ GASのWebアプリURLをここに貼り付けてください
+  // ============================================================
+  const GAS_URL = "https://script.google.com/a/macros/e-guardian.co.jp/s/AKfycbzOtDGtjzQXCX8vsDv3IKr4o4MUSDDX2aHIp7IE4hZWv6bg2tuQ_URnM0vHnUp2gCkHJw/exec";
+
+  // 今日の日付をセット
+  document.getElementById("date").value = new Date().toLocaleDateString("sv-SE");
+
+  function fetchLastPlan() {
+    const name = document.getElementById("name").value;
+    const display = document.getElementById("todayPlanDisplay");
+    const loading = document.getElementById("planLoading");
+    const hidden = document.getElementById("todayPlan");
+
+    if (!name) {
+      display.textContent = "名前を選択すると前回の予定が表示されます";
+      display.className = "plan-box empty";
+      hidden.value = "";
+      return;
+    }
+
+    loading.style.display = "block";
+    display.style.display = "none";
+
+    fetch(`${GAS_URL}?name=${encodeURIComponent(name)}`)
+      .then(r => r.json())
+      .then(data => {
+        loading.style.display = "none";
+        display.style.display = "block";
+        if (data.tomorrowPlan) {
+          display.textContent = data.tomorrowPlan;
+          display.className = "plan-box";
+          hidden.value = data.tomorrowPlan;
+        } else {
+          display.textContent = "前回の記録がありません";
+          display.className = "plan-box empty";
+          hidden.value = "";
+        }
+      })
+      .catch(() => {
+        loading.style.display = "none";
+        display.style.display = "block";
+        display.textContent = "取得に失敗しました（GAS URLを確認してください）";
+        display.className = "plan-box empty";
+        hidden.value = "";
+      });
+  }
+
+  function submitReport() {
+    const date        = document.getElementById("date").value;
+    const name        = document.getElementById("name").value;
+    const todayPlan   = document.getElementById("todayPlan").value;
+    const todayActual = document.getElementById("todayActual").value.trim();
+    const reflection  = document.getElementById("reflection").value.trim();
+    const tomorrowPlan = document.getElementById("tomorrowPlan").value.trim();
+    const memo        = document.getElementById("memo").value.trim();
+
+    if (!date || !name || !todayActual || !tomorrowPlan) {
+      showToast("日付・担当者・本日の実績・明日の予定は必須です", "error");
+      return;
+    }
+
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true;
+    btn.textContent = "送信中...";
+
+    fetch(GAS_URL, {
+      method: "POST",
+      body: JSON.stringify({ date, name, todayPlan, todayActual, reflection, tomorrowPlan, memo })
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === "ok") {
+          showToast("日報を送信しました！", "success");
+          clearForm();
+        } else {
+          showToast("エラーが発生しました", "error");
+        }
+      })
+      .catch(() => showToast("送信に失敗しました（GAS URLを確認してください）", "error"))
+      .finally(() => {
+        btn.disabled = false;
+        btn.textContent = "送信する";
+      });
+  }
+
+  function clearForm() {
+    document.getElementById("name").value = "";
+    document.getElementById("todayPlan").value = "";
+    document.getElementById("todayActual").value = "";
+    document.getElementById("reflection").value = "";
+    document.getElementById("tomorrowPlan").value = "";
+    document.getElementById("memo").value = "";
+    document.getElementById("todayPlanDisplay").textContent = "名前を選択すると前回の予定が表示されます";
+    document.getElementById("todayPlanDisplay").className = "plan-box empty";
+    document.getElementById("date").value = new Date().toLocaleDateString("sv-SE");
+  }
+
+  function showToast(msg, type) {
+    const toast = document.getElementById("toast");
+    toast.textContent = msg;
+    toast.className = `toast ${type}`;
+    toast.style.display = "block";
+    setTimeout(() => toast.style.display = "none", 4000);
+  }
+</script>
+</body>
+</html>
